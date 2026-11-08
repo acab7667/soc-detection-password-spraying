@@ -2,12 +2,14 @@
 
 Repository ini dibangunkan khas untuk menyokong operasi harian **Detection Engineer** dan **SOC Analyst** dalam mengesan, menyaring, dan bertindak balas (*incident response*) terhadap serangan **Password Spraying**.
 
+Projek ini serasi sepenuhnya secara *native* dengan ekosistem **Microsoft Azure (Entra ID)**, **Microsoft Sentinel**, dan **Microsoft Defender XDR (Advanced Hunting)**.
+
 ---
 
 ## 🎯 Objektif Projek
 
 1. **Detection Engineering:**
-   * Menyediakan logik pengesanan standard (**Sigma**) yang boleh dieksport ke pelbagai platform SIEM (Splunk, Microsoft Sentinel, Elastic, QRadar).
+   * Menyediakan logik pengesanan standard (**Sigma**) dan query **KQL** khusus untuk **Microsoft Sentinel** serta **Microsoft Defender XDR (Advanced Hunting)**.
    * Membina korelasi antara percubaan gagal (*failed logins*) dengan log masuk yang berjaya (*successful authentication*).
    * Meminimumkan kadar *False Positive* (FP) daripada pengimbas keselamatan dalaman (*vulnerability scanners*) dan servis automatik.
 
@@ -18,15 +20,16 @@ Repository ini dibangunkan khas untuk menyokong operasi harian **Detection Engin
 
 ---
 
-## 🗺️ Pemetaan MITRE ATT&CK
+## 🗺️ Pemetaan MITRE ATT&CK & Sumber Log Microsoft
 
 * **Tactic:** Credential Access (`TA0006`)
 * **Technique:** Brute Force (`T1110`)
 * **Sub-technique:** Password Spraying (`T1110.003`)
 * **Log Sources:**
-  * Windows Event Logs (Event ID `4625` - Status `0xC000006A`, Event ID `4771` - Failure Code `0x18`)
-  * Microsoft Entra ID / Azure AD (`SigninLogs` - Error Code `50126`)
-  * VPN / Reverse Proxy / SSO Logs
+  * **Microsoft Defender XDR:** Jadual `IdentityLogonEvents` (Advanced Hunting)
+  * **Microsoft Sentinel / Azure Log Analytics:** Jadual `SigninLogs` (Error `50126` & Success `0`)
+  * **Windows Event Logs:** Event ID `4625` (Status `0xC000006A`), Event ID `4771` (Failure Code `0x18`), Event ID `4624` (Success)
+  * **VPN / SSO Logs:** Okta, PingFederate, GlobalProtect
 
 ---
 
@@ -37,8 +40,9 @@ soc-detection-password-spraying/
 ├── detections/
 │   ├── sigma/            # Rule universal Sigma
 │   │   └── win_password_spray_kerberos_ntlm.yml
-│   └── kql/              # Query Microsoft Sentinel
-│       └── entra_id_password_spray.kql
+│   └── kql/              # Query Microsoft Sentinel & Defender XDR
+│       ├── entra_id_password_spray.kql           # Microsoft Sentinel (SigninLogs)
+│       └── defender_advanced_hunting_spray.kql   # Microsoft Defender XDR (IdentityLogonEvents)
 ├── playbooks/
 │   └── IR_Playbook_Password_Spraying.md   # SOP & Triage Playbook (L1/L2)
 ├── triage-scripts/
@@ -48,6 +52,20 @@ soc-detection-password-spraying/
 │   └── sample_spray_events.json # Data ujian simulasi log serangan
 └── README.md
 ```
+
+---
+
+## 🛡️ Penggunaan Query KQL dalam Ekosistem Microsoft
+
+### A. Microsoft Defender XDR (Advanced Hunting)
+1. Buka portal [Microsoft Defender](https://security.microsoft.com).
+2. Pergi ke **Hunting ➡️ Advanced Hunting**.
+3. Salin kandungan fail [`detections/kql/defender_advanced_hunting_spray.kql`](detections/kql/defender_advanced_hunting_spray.kql) dan klik **Run query**.
+4. Query ini menggunakan jadual `IdentityLogonEvents` untuk memantau cubaan semburan kata laluan merentasi On-Prem Active Directory dan Cloud Identities serentak.
+
+### B. Microsoft Sentinel / Azure Log Analytics
+1. Buka portal Azure ➡️ **Microsoft Sentinel ➡️ Logs**.
+2. Buka fail [`detections/kql/entra_id_password_spray.kql`](detections/kql/entra_id_password_spray.kql) untuk menganalisis jadual `SigninLogs`.
 
 ---
 
