@@ -1,91 +1,159 @@
-# Standard Operating Procedure (SOP): Password Spraying Triage & Response Playbook
+# 🛡️ Enterprise Incident Response Playbook: Password Spraying (MITRE ATT&CK T1110.003)
 
-* **Classification:** Incident Response / SOC Triage Playbook
-* **Target Attack:** MITRE ATT&CK T1110.003 (Password Spraying)
-* **Target Roles:** SOC Analyst L1, SOC Analyst L2, Incident Responder
+* **Versi:** 2.0 (SOC Production Ready)
+* **Klasifikasi:** Standard Operating Procedure (SOP) & IR Playbook
+* **Sasaran Peranan:** SOC Analyst L1, SOC Analyst L2, Incident Response Lead
+* **Skop Ancaman:** Active Directory Domain Services (On-Prem), Microsoft Entra ID (Azure AD), Okta, VPN Gateway, & Reverse Proxy
 
 ---
 
-## 🧭 Flowchart Triage Ringkas
+## 1. 🧭 Ringkasan Eksekutif & Carta Alir Triage (5-Minute Fast Track)
 
 ```text
-Alert Triggered (Password Spraying)
+[ SIEM / EDR Alert: Password Spraying Triggered ]
+                        │
+                        ▼
+            [ LANGKAH 1: IDENTIFIKASI ]
+    • Kumpul: Source IP, Targeted Users, Protokol, User-Agent
+    • Semak sama ada IP adalah Internal Scanner / VPN Gateways
+          │
+          ├─► [FAKTA: Internal / Authorized] ──► [FP: Dokumentasi & Tune SIEM]
           │
           ▼
-[Step 1: Pengesahan Sumber IP]
-  ├─ Adakah IP VPN / Proxy / Vulnerability Scanner Rasmi? ──► [Ya: Mark as False Positive & Tune]
-  └─ [Tidak: Sumber Luar / Tidak Dikenali]
+      [ LANGKAH 2: PENENTUAN SEVERITI ]
+    • Adakah terdapat Log Masuk BERJAYA (Event 4624 / ResultType 0)?
           │
-          ▼
-[Step 2: Semakan Akaun Berjaya (Critical Compromise)]
-  ├─ Adakah terdapat Event 4624 / ResultType 0 dari IP ini?
-  │       ├─ [Ya] ──► 🚨 SEVERITY CRITICAL: Akaun Telah Ditembusi (Lihat Fasa 4)
-  │       └─ [Tidak] ──► ⚠️ SEVERITY HIGH: Percubaan Password Spraying Gagal
+          ├─► [YA: AKAUN DITEMBUSI] ──────────► 🚨 SEVERITY: CRITICAL
+          │                                      (Jalankan Protokol Pembendungan Penuh)
           │
-          ▼
-[Step 3: Tindakan Pembendungan (Containment)]
-  ├─ Sekat IP sumber pada Perimeter Firewall / WAF
-  └─ Jika ada akaun berjaya: Revoke session tokens & Reset password serta-merta
+          └─► [TIDAK: HANYA PERCUBAAN GAGAL] ──► ⚠️ SEVERITY: HIGH / MEDIUM
+                                                 (Sekat IP & Pantau Akaun Sasaran)
 ```
 
 ---
 
-## 📋 Langkah-langkah Triage Terperinci
+## 2. 🎯 Matriks Penentuan Tahap Keterukan (Severity Matrix)
 
-### Fasa 1: Pengesahan & Pengenalpastian Skop (Scoping)
+| Tahap Keterukan | Syarat Pengesanan | SLA Respons (L1/L2) | Tindakan Segera |
+| :--- | :--- | :--- | :--- |
+| 🔴 **CRITICAL** | Terdapat sekurang-kurangnya **1 log masuk berjaya** (Event 4624 / ResultType 0) dari IP penyerang ATAU melibatkan akaun Domain Admin / VIP. | **< 15 Minit** | Sekat IP, tamatkan sesi aktif (*Revoke tokens*), reset kata laluan, dan mulakan siasatan forensik (*post-compromise*). |
+| 🟠 **HIGH** | Serangan berskala besar ($\ge 20$ akaun unik) dari IP luaran yang tidak dikenali, tetapi **tiada** log masuk berjaya. | **< 30 Minit** | Sekat IP pada Firewall/WAF perimeter, semak dasar *account lockout*, laporkan IP penyerang. |
+| 🟡 **MEDIUM** | Serangan berskala kecil (5–19 akaun) dan disekat oleh dasar *Conditional Access* atau geoblocking. | **< 1 Jam** | Tambah IP ke senarai pemantauan (*watchlist*), semak pendedahan kelayakan di Threat Intel. |
+| 🟢 **LOW / INFO** | Percubaan log masuk gagal yang tersebar atau disahkan daripada pengimbas kelemahan (*internal scanner*). | **< 4 Jam** | Sahkan dengan pasukan IT/Penetration Testing, tutup tiket sebagai FP berjadual. |
+
+---
+
+## 3. 🔍 Prosedur Siasatan Terperinci Langkah Demi Langkah
+
+### Langkah 3.1: Pengesahan & Pengumpulan Bukti Awal (Scoping)
 1. **Dapatkan Senarai Penunjuk (IoCs):**
-   * Alamat IP Sumber (`SourceIP`)
-   * User-Agent / Protokol (cth: Exchange ActiveSync, PowerShell, RDP, Azure Portal)
-   * Senarai akaun yang disasarkan (`TargetUserName` / `UserPrincipalName`)
-2. **Kategori Sasaran:**
-   * Semak sama ada akaun yang disasarkan merangkumi akaun istimewa (Domain Admin, VIP, C-Suite, IT Helpdesk).
+   * **Source IP:** Semak pembekal hosting (cth: DigitalOcean, AWS, Tor Exit Node, Residential Proxy).
+   * **User-Agent:** Cari corak mencurigakan (cth: `BAV2ROPC`, PowerShell `curl`, Python `requests`, atau User-Agent lapuk).
+   * **Protokol:** Tentukan laluan serangan (Kerberos port 88, NTLM RPC, O365 ROPC, Exchange ActiveSync).
+2. **Semak Profil Akaun yang Disasarkan:**
+   * Adakah nama akaun tersusun mengikut turutan abjad (cth: `a.ali`, `a.abu`, `b.badrul` — petanda *dictionary attack*)?
+   * Adakah terdapat akaun perkhidmatan (*service accounts*) atau akaun pentadbir (*admin*)?
+
+### Langkah 3.2: Penyingkiran False Positive (FP Verification)
+Sebelum membuat sekatan drastik:
+* Semak jadual ujian penembusan (*penetration test*) syarikat.
+* Semak sama ada IP dimiliki oleh *mail gateway* dalaman atau integrasi pihak ketiga (cth: Salesforce, ServiceNow).
+* *ActiveSync Loop:* Kadangkala telefon pintar pekerja yang menukar kata laluan akan menghantar ratusan request dengan kata laluan lama. **Perbezaan:** ActiveSync glitch hanya menyasarkan **1 akaun**, manakala Password Spray menyasarkan **banyak akaun berbeza**.
+
+### Langkah 3.3: Semakan Integriti Akaun (Compromise Verification)
+Jalankan query korelasi pada SIEM:
+```kql
+// Semakan log masuk berjaya sejurus selepas siri kegagalan dari IP yang sama
+SigninLogs
+| where IPAddress == "<SUSPICIOUS_IP>"
+| where ResultType == "0" // 0 = Logon Success
+| project TimeGenerated, UserPrincipalName, AppDisplayName, IPAddress, Location
+```
+* **Jika TIADA rekod berjaya:** Teruskan ke Fasa Pembendungan Biasa (Sekat IP).
+* **Jika ADA rekod berjaya:** Akaun tersebut **SAH DITEMBUSI (*COMPROMISED*)**. Ikuti Langkah 4.2 serta-merta!
 
 ---
 
-### Fasa 2: Semakan False Positive (FP Tuning)
-Sebelum mengambil tindakan menyekat:
-* **Vulnerability Assessment:** Semak jadual *penetration test* atau *vulnerability scanning* dalaman (Qualys, Nessus, Rapid7).
-* **Exchange / ActiveSync Glitch:** Kadangkala telefon bimbit pekerja yang menukar kata laluan akan terus mencuba kata laluan lama berulang kali, tetapi biasanya hanya melibatkan **satu** akaun sahaja.
+## 4. 🛑 Prosedur Pembendungan & Pemulihan (Containment & Eradication)
+
+### 4.1 Pembendungan Perimeter (Rangkaian / Firewall)
+1. Masukkan IP sumber ke dalam blok *Drop/Deny* pada Perimeter Firewall (Palo Alto, Fortinet, Checkpoint) atau Cloudflare WAF selama **72 jam minimum**.
+2. Jika serangan menggunakan rangkaian proksi berputar (*rotating residential proxies*), pertimbangkan sekatan sementara berasaskan negara (*Geo-IP Block*) atau sekatan bersyarat MFA wajib.
+
+### 4.2 Pembendungan Akaun yang Telah Ditembusi (Compromised Account Actions)
+
+#### A. Tindakan pada Microsoft Entra ID / Office 365 (PowerShell):
+```powershell
+# 1. Sambung ke Microsoft Graph PowerShell
+Connect-MgGraph -Scopes "User.ReadWrite.All"
+
+# 2. Batalkan semua sesi token aktif serta-merta (Kick attacker out)
+Revoke-MgUserSignInSession -UserId "mangsa@domainanda.com"
+
+# 3. Kunci/Nyahaktifkan akaun sementara waktu (jika perlu)
+Update-MgUser -UserId "mangsa@domainanda.com" -AccountEnabled $false
+
+# 4. Semak sama ada penyerang telah mendaftarkan peranti MFA baharu
+Get-MgUserAuthenticationMethod -UserId "mangsa@domainanda.com"
+```
+
+#### B. Tindakan pada Active Directory Tempatan (On-Premises AD):
+```powershell
+# 1. Nyahaktifkan akaun
+Disable-ADAccount -Identity "nama_pengguna"
+
+# 2. Paksa tukar kata laluan pada log masuk seterusnya
+Set-ADUser -Identity "nama_pengguna" -ChangePasswordAtLogon $true
+
+# 3. Kosongkan tiket Kerberos yang aktif di Domain Controller
+# (Jalankan klist purge pada workstation mangsa jika ada akses EDR)
+```
+
+### 4.3 Siasatan Forensik Pos-Pencerobohan (Post-Exploitation Forensics)
+Selepas pembendungan, lakukan semakan berikut pada akaun mangsa:
+1. **Inbox Forwarding Rules:** Semak sama ada penyerang membuat rule untuk memajukan emel syarikat ke emel luaran:
+   ```powershell
+   Get-InboxRule -Mailbox "mangsa@domainanda.com" | Select-Object Name, ForwardTo, RedirectTo
+   ```
+2. **OAuth App Consents:** Semak sama ada penyerang meluluskan akses aplikasi pihak ketiga berniat jahat (*illegitimate enterprise apps*).
+3. **Audit Log:** Periksa fail yang dimuat turun dari SharePoint/OneDrive dalam tempoh 2 jam selepas log masuk berjaya.
 
 ---
 
-### Fasa 3: Penilaian Impak (Compromise Assessment)
-* **Korelasi Kejayaan:**
-  Lakukan carian pada SIEM untuk IP sumber yang sama:
-  * Windows Event ID: `4625` (Gagal) disusuli `4624` (Berjaya)
-  * Entra ID: ResultType `50126` disusuli `0`
-* **Jika TIADA kejayaan:**
-  * Penyerang belum berjaya menembusi akaun. Kategori: **Attempted Attack / Blocked**.
-* **Jika ADA kejayaan:**
-  * Akaun tersebut telah **COMPROMISED**. Teruskan ke Fasa 4 serta-merta.
+## 5. 📝 Templat Dokumentasi & Komunikasi SOC
 
----
+### Templat Tiket Penyelesaian (ServiceNow / Jira Service Desk)
+```text
+[INCIDENT CLOSURE SUMMARY: PASSWORD SPRAYING]
+- Incident ID         : INC-20261108-XXXX
+- Threat Classification: MITRE ATT&CK T1110.003 (Password Spraying)
+- Attacker Source IP   : [IP_PENYERANG] (ISP / Negara: [ISP_NEGARA])
+- Targeted Accounts    : [Bilangan] akaun (cth: user1, user2, user3)
+- Successful Logins    : TIADA / 1 Akaun ([user_terjejas])
+- Containment Actions  :
+  [x] IP disekat pada Firewall Perimeter (Ticket FW-XXXX)
+  [x] Akaun mangsa dibatalkan sesi token (Revoke-MgUserSignInSession)
+  [x] Kata laluan akaun telah direset
+  [x] Semakan peti masuk mengesahkan TIADA forward rule berniat jahat
+- Status               : CLOSED (Mitigated)
+- Root Cause / Rec.    : Laksanakan dasar MFA wajib dan sekat protokol autentikasi warisan (Legacy Auth).
+```
 
-### Fasa 4: Tindakan Respons & Pembendungan (Containment)
+### Templat Emel kepada Pengguna Terjejas
+```text
+Subjek: [PENTING] Tindakan Keselamatan: Penetapan Semula Kata Laluan Akaun Anda
 
-1. **Bagi Percubaan Gagal (Tiada Akaun Ditembusi):**
-   * Sekat IP sumber pada Perimeter Firewall / WAF / Cloudflare selama 48–72 jam.
-   * Laporkan IP kepada AbuseIPDB jika disahkan berbahaya.
+Salam [Nama Pengguna],
 
-2. **Bagi Akaun yang Berjaya Ditembusi (Compromised):**
-   * **Langkah 1:** *Force Password Reset* bagi pengguna terlibat.
-   * **Langkah 2:** *Revoke All Active Sessions / Refresh Tokens* (dalam Azure AD: `Revoke-AzureADUserAllRefreshToken`).
-   * **Langkah 3:** Semak sama ada MFA diaktifkan untuk akaun tersebut. Jika tiada, wajibkan MFA.
-   * **Langkah 4:** Periksa aktiviti pos-eksploitasi (Contoh: pembikinan inbox forwarding rules, muat turun data dari OneDrive, pendaftaran peranti MFA baharu yang tidak dikenali).
+Pasukan Keselamatan Siber (SOC) telah mengesan percubaan akses yang tidak dibenarkan terhadap akaun anda daripada lokasi [Negara/IP].
 
----
+Demi menjaga keselamatan data syarikat dan akaun anda:
+1. Sesi log masuk anda telah ditamatkan secara automatik.
+2. Kata laluan anda perlu ditetapkan semula melalui portal rasmi kami: https://passwordreset.domainanda.com
+3. Sila pastikan anda TIDAK meluluskan sebarang notifikasi pengesahan MFA (Authenticator prompt) pada telefon anda yang bukan dimulakan oleh anda.
 
-## ✉️ Templat Komunikasi kepada Pengguna (User Notification Template)
+Jika anda memerlukan bantuan, sila hubungi meja bantuan SOC di sambungan talian [Nombor Telefon] atau emel soc@domainanda.com.
 
-> **Subjek:** [Pemberitahuan Keselamatan IT] Pengesanan Percubaan Log Masuk Luar Biasa ke Akaun Anda
->
-> Salam [Nama Pengguna],
->
-> Pasukan Keselamatan Siber (SOC) telah mengesan beberapa percubaan log masuk yang mencurigakan ke akaun organisasi anda daripada alamat IP luar negara ([IP_Address]).
->
-> Sebagai langkah keselamatan proaktif:
-> 1. Sesi log masuk anda telah ditamatkan.
-> 2. Sila kemas kini kata laluan anda melalui portal rasmi kami: [Pautan Portal Rasmi].
-> 3. Jangan sesekali meluluskan sebarang permintaan notifikasi MFA (Authenticator Prompt) yang tidak dimulakan oleh anda sendiri.
->
-> Jika anda mempunyai sebarang soalan, sila hubungi meja bantuan SOC di [Emel/Nombor SOC].
+Sekian, terima kasih.
+Pasukan Keselamatan Maklumat (SOC)
+```
