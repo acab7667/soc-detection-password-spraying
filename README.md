@@ -2,7 +2,7 @@
 
 Repository ini dibangunkan khas untuk menyokong operasi harian **Detection Engineer** dan **SOC Analyst** dalam mengesan, menyaring, dan bertindak balas (*incident response*) terhadap serangan **Password Spraying**.
 
-Projek ini serasi sepenuhnya secara *native* dengan ekosistem **Microsoft Azure (Entra ID)**, **Microsoft Sentinel**, dan **Microsoft Defender XDR (Advanced Hunting)**.
+Projek ini serasi sepenuhnya secara *native* dengan ekosistem **Microsoft Azure (Entra ID)**, **Microsoft Sentinel**, dan **Microsoft Defender XDR (Advanced Hunting)** serta menyediakan skrip dwibahasa (**Python & PowerShell**) untuk fleksibiliti analis di persekitaran Windows mahupun Linux.
 
 ---
 
@@ -15,7 +15,7 @@ Projek ini serasi sepenuhnya secara *native* dengan ekosistem **Microsoft Azure 
 
 2. **SOC Operational Efficiency:**
    * Membekalkan **Incident Response Playbook (v2.0)** bertaraf perusahaan untuk analis L1/L2 merangkumi kriteria *Severity*, perintah pembendungan (*containment*), dan templat emel.
-   * Menyediakan skrip pembantu (*triage scripts*) untuk memproses log dan menyemak reputasi IP penyerang secara automatik menggunakan **VirusTotal API v3**, **AbuseIPDB API v2**, dan **ip-api**.
+   * Menyediakan skrip pembantu (*triage scripts*) dalam **Python** dan **PowerShell Native** untuk memproses log dan menyemak reputasi IP penyerang secara automatik menggunakan **VirusTotal API v3**, **AbuseIPDB API v2**, dan **ip-api**.
    * Mempercepatkan *Mean Time to Detect (MTTD)* dan *Mean Time to Respond (MTTR)*.
 
 ---
@@ -46,47 +46,27 @@ soc-detection-password-spraying/
 ├── playbooks/
 │   └── IR_Playbook_Password_Spraying.md   # SOP & Triage Playbook (L1/L2)
 ├── triage-scripts/
-│   ├── parse_spray_logs.py # Pengesan corak password spray & pengekstrakan IP
-│   └── enrich_ip.py        # Semakan automatik Geolocation, ASN, VirusTotal v3 & AbuseIPDB v2
+│   ├── parse_spray_logs.py   # Log parser (Python)
+│   ├── parse_spray_logs.ps1  # Log parser (PowerShell Native)
+│   ├── enrich_ip.py          # Threat Intel Enrichment (Python)
+│   └── enrich_ip.ps1         # Threat Intel Enrichment (PowerShell Native)
 ├── test-data/
-│   └── sample_spray_events.json # Data ujian simulasi log serangan
+│   ├── sample_spray_events.json  # Data ujian Windows Event Log
+│   └── simulation_scenario.json  # Data simulasi senario pencerobohan sebenar
 └── README.md
 ```
 
 ---
 
-## 🛡️ Penggunaan Query KQL dalam Ekosistem Microsoft
+## 🚀 Panduan Pantas Menjalankan Simulasi (Hands-On Simulation)
 
-### A. Microsoft Defender XDR (Advanced Hunting)
-1. Buka portal [Microsoft Defender](https://security.microsoft.com).
-2. Pergi ke **Hunting ➡️ Advanced Hunting**.
-3. Salin kandungan fail [`detections/kql/defender_advanced_hunting_spray.kql`](detections/kql/defender_advanced_hunting_spray.kql) dan klik **Run query**.
-4. Query ini menggunakan jadual `IdentityLogonEvents` untuk memantau cubaan semburan kata laluan merentasi On-Prem Active Directory dan Cloud Identities serentak.
+Anda boleh menjalankan simulasi penuh pengesanan menggunakan **PowerShell** (tiada pemasangan pakej tambahan diperlukan):
 
-### B. Microsoft Sentinel / Azure Log Analytics
-1. Buka portal Azure ➡️ **Microsoft Sentinel ➡️ Logs**.
-2. Buka fail [`detections/kql/entra_id_password_spray.kql`](detections/kql/entra_id_password_spray.kql) untuk menganalisis jadual `SigninLogs`.
+```powershell
+# Langkah 1: Analisis log simulasi & ekstrak IP suspek
+.\triage-scripts\parse_spray_logs.ps1 -LogFile ".\test-data\simulation_scenario.json" -OutputIps "suspicious_ips.txt"
 
----
-
-## 🚀 Panduan Penggunaan Harian untuk SOC Analyst
-
-### 1. Ekstrak & Kesan Corak Serangan dari Log:
-```bash
-python triage-scripts/parse_spray_logs.py test-data/sample_spray_events.json --output-ips suspicious_ips.txt
+# Langkah 2: Semak reputasi IP suspek menggunakan Threat Intelligence (VirusTotal & AbuseIPDB)
+.\triage-scripts\enrich_ip.ps1 -File "suspicious_ips.txt" -Csv "laporan_simulasi_soc.csv"
 ```
-Skrip ini akan memaparkan jadual ringkasan impak, akaun sasaran, dan menandakan akaun yang berjaya ditembusi (*Compromised*).
-
-### 2. Semak Reputasi IP Menggunakan VirusTotal v3 & AbuseIPDB:
-```bash
-# Menggunakan hujah baris perintah (--vt-key & --abuse-key):
-python triage-scripts/enrich_ip.py -f suspicious_ips.txt --vt-key <VT_KEY> --abuse-key <ABUSE_KEY> --csv laporan_triage.csv
-
-# ATAU tetapkan sebagai pembolehubah persekitaran (Environment Variable):
-export VT_API_KEY="kunci_api_virustotal"
-export ABUSEIPDB_API_KEY="kunci_api_abuseipdb"
-python triage-scripts/enrich_ip.py -f suspicious_ips.txt --csv laporan_triage.csv
-```
-
-### 3. Jalankan Tindakan Pembendungan mengikut Playbook:
-Buka [**`playbooks/IR_Playbook_Password_Spraying.md`**](playbooks/IR_Playbook_Password_Spraying.md) untuk langkah pembendungan akaun Active Directory / Entra ID dan templat komunikasi insiden.
+*(Bagi pengguna persekitaran Linux/macOS, perintah yang sama boleh dijalankan menggunakan `python triage-scripts/parse_spray_logs.py` dan `python triage-scripts/enrich_ip.py`).*
