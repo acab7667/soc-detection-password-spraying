@@ -13,7 +13,7 @@ Repository ini dibangunkan khas untuk menyokong operasi harian **Detection Engin
 
 2. **SOC Operational Efficiency:**
    * Membekalkan **Incident Response Playbook (v2.0)** bertaraf perusahaan untuk analis L1/L2 merangkumi kriteria *Severity*, perintah pembendungan (*containment*), dan templat emel.
-   * Menyediakan skrip pembantu (*triage scripts*) untuk memproses log dan menyemak reputasi IP penyerang secara automatik menggunakan **VirusTotal API v3**, **AbuseIPDB**, dan **ip-api**.
+   * Menyediakan skrip pembantu (*triage scripts*) untuk memproses log dan menyemak reputasi IP penyerang secara automatik menggunakan **VirusTotal API v3**, **AbuseIPDB API v2**, dan **ip-api**.
    * Mempercepatkan *Mean Time to Detect (MTTD)* dan *Mean Time to Respond (MTTR)*.
 
 ---
@@ -43,7 +43,7 @@ soc-detection-password-spraying/
 │   └── IR_Playbook_Password_Spraying.md   # SOP & Triage Playbook (L1/L2)
 ├── triage-scripts/
 │   ├── parse_spray_logs.py # Pengesan corak password spray & pengekstrakan IP
-│   └── enrich_ip.py        # Semakan automatik Geolocation, ASN, VirusTotal v3 & AbuseIPDB
+│   └── enrich_ip.py        # Semakan automatik Geolocation, ASN, VirusTotal v3 & AbuseIPDB v2
 ├── test-data/
 │   └── sample_spray_events.json # Data ujian simulasi log serangan
 └── README.md
@@ -59,13 +59,14 @@ python triage-scripts/parse_spray_logs.py test-data/sample_spray_events.json --o
 ```
 Skrip ini akan memaparkan jadual ringkasan impak, akaun sasaran, dan menandakan akaun yang berjaya ditembusi (*Compromised*).
 
-### 2. Semak Reputasi IP Menggunakan VirusTotal v3 & OSINT:
+### 2. Semak Reputasi IP Menggunakan VirusTotal v3 & AbuseIPDB:
 ```bash
-# Menggunakan hujah baris perintah (--vt-key):
-python triage-scripts/enrich_ip.py -f suspicious_ips.txt --vt-key <VIRUSTOTAL_API_KEY> --csv laporan_triage.csv
+# Menggunakan hujah baris perintah (--vt-key & --abuse-key):
+python triage-scripts/enrich_ip.py -f suspicious_ips.txt --vt-key <VT_KEY> --abuse-key <ABUSE_KEY> --csv laporan_triage.csv
 
 # ATAU tetapkan sebagai pembolehubah persekitaran (Environment Variable):
-export VT_API_KEY="kunci_api_virustotal_anda"
+export VT_API_KEY="kunci_api_virustotal"
+export ABUSEIPDB_API_KEY="kunci_api_abuseipdb"
 python triage-scripts/enrich_ip.py -f suspicious_ips.txt --csv laporan_triage.csv
 ```
 
