@@ -1,6 +1,6 @@
 # SOC Detection: Password Spraying (MITRE ATT&CK T1110.003)
 
-Repository ini dibangunkan khas untuk membantu tugasan harian **Detection Engineer** dan **SOC Analyst** dalam mengesan, menyaring, dan bertindak balas (*incident response*) terhadap serangan **Password Spraying**.
+Repository ini dibangunkan khas untuk menyokong operasi harian **Detection Engineer** dan **SOC Analyst** dalam mengesan, menyaring, dan bertindak balas (*incident response*) terhadap serangan **Password Spraying**.
 
 ---
 
@@ -12,8 +12,8 @@ Repository ini dibangunkan khas untuk membantu tugasan harian **Detection Engine
    * Meminimumkan kadar *False Positive* (FP) daripada pengimbas keselamatan dalaman (*vulnerability scanners*) dan servis automatik.
 
 2. **SOC Operational Efficiency:**
-   * Membekalkan **Incident Response Playbook** langkah demi langkah untuk analis L1/L2.
-   * Menyediakan skrip pembantu (*triage scripts*) untuk menyemak reputasi IP secara pantas tanpa perlu menampal log mentah.
+   * Membekalkan **Incident Response Playbook (v2.0)** bertaraf perusahaan untuk analis L1/L2 merangkumi kriteria *Severity*, perintah pembendungan (*containment*), dan templat emel.
+   * Menyediakan skrip pembantu (*triage scripts*) untuk memproses log dan menyemak reputasi IP penyerang secara automatik.
    * Mempercepatkan *Mean Time to Detect (MTTD)* dan *Mean Time to Respond (MTTR)*.
 
 ---
@@ -40,16 +40,29 @@ soc-detection-password-spraying/
 │   └── kql/              # Query Microsoft Sentinel
 │       └── entra_id_password_spray.kql
 ├── playbooks/
-│   └── IR_Playbook_Password_Spraying.md   # SOP & Triage Playbook
+│   └── IR_Playbook_Password_Spraying.md   # SOP & Triage Playbook (L1/L2)
 ├── triage-scripts/
-│   └── enrich_ip.py      # Skrip pantas pengesanan reputasi IP
+│   ├── parse_spray_logs.py # Pengesan corak password spray & pengekstrakan IP
+│   └── enrich_ip.py        # Semakan automatik Geolocation, ASN, & AbuseIPDB
+├── test-data/
+│   └── sample_spray_events.json # Data ujian simulasi log serangan
 └── README.md
 ```
 
 ---
 
-## 🚀 Panduan Penggunaan
+## 🚀 Panduan Penggunaan Harian untuk SOC Analyst
 
-1. **Uji Pengesanan:** Rujuk query di dalam direktori `detections/` dan sesuaikan nilai ambang (*threshold*, cth: $\ge 5$ akaun dalam 10 minit) mengikut persekitaran organisasi anda.
-2. **Tindakan Alert:** Ikuti panduan di `playbooks/IR_Playbook_Password_Spraying.md` apabila alert dicetuskan.
-3. **Automasi Triage:** Jalankan `python triage-scripts/enrich_ip.py <IP>` untuk semakan awal penyerang.
+### 1. Ekstrak & Kesan Corak Serangan dari Log:
+```bash
+python triage-scripts/parse_spray_logs.py test-data/sample_spray_events.json --output-ips suspicious_ips.txt
+```
+Skrip ini akan memaparkan jadual ringkasan impak, akaun sasaran, dan menandakan akaun yang berjaya ditembusi (*Compromised*).
+
+### 2. Semak Reputasi IP Penyerang Secara Pukal (Bulk Enrichment):
+```bash
+python triage-scripts/enrich_ip.py -f suspicious_ips.txt --csv laporan_triage.csv
+```
+
+### 3. Jalankan Tindakan Pembendungan mengikut Playbook:
+Buka [**`playbooks/IR_Playbook_Password_Spraying.md`**](playbooks/IR_Playbook_Password_Spraying.md) untuk langkah pembendungan akaun Active Directory / Entra ID dan templat komunikasi insiden.
