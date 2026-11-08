@@ -1,0 +1,58 @@
+[
+  {
+    "Timestamp": "2026-11-08T15:20:01Z",
+    "EventID": 4625,
+    "Status": "0xc000006a",
+    "TargetUserName": "admin_test",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "Timestamp": "2026-11-08T15:21:12Z",
+    "EventID": 4625,
+    "Status": "0xc000006a",
+    "TargetUserName": "finance_mgr",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "Timestamp": "2026-11-08T15:22:30Z",
+    "EventID": 4771,
+    "FailureCode": "0x18",
+    "TargetUserName": "hr_lead",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Pre-authentication failed (Bad Password)"
+  },
+  {
+    "Timestamp": "2026-11-08T15:23:45Z",
+    "EventID": 4625,
+    "Status": "0xc000006a",
+    "TargetUserName": "dev_engineer",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "Timestamp": "2026-11-08T15:25:00Z",
+    "EventID": 4625,
+    "Status": "0xc000006a",
+    "TargetUserName": "helpdesk_agent",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "Timestamp": "2026-11-08T15:26:10Z",
+    "EventID": 4625,
+    "Status": "0xc000006a",
+    "TargetUserName": "legal_advisor",
+    "IpAddress": "203.0.113.45",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "Timestamp": "2026-11-08T15:28:00Z",
+    "EventID": 4624,
+    "TargetUserName": "helpdesk_agent",
+    "IpAddress": "203.0.113.45",
+    "LogonType": 3,
+    "Comment": "ALERT: Successful login following multiple spray attempts (Compromise Indication)"
+  }
+]
