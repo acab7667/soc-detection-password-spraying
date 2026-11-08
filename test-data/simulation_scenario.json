@@ -1,0 +1,112 @@
+[
+  {
+    "TimeGenerated": "2026-11-09T00:10:01Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "ceo_office@syarikat.com",
+    "ResultType": "50126",
+    "AppDisplayName": "Office 365 Exchange Online",
+    "UserAgent": "BAV2ROPC"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:10:45Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "cfo_exec@syarikat.com",
+    "ResultType": "50126",
+    "AppDisplayName": "Office 365 Exchange Online",
+    "UserAgent": "BAV2ROPC"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:11:30Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "hr_director@syarikat.com",
+    "ResultType": "50126",
+    "AppDisplayName": "Office 365 Exchange Online",
+    "UserAgent": "BAV2ROPC"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:12:15Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "legal_head@syarikat.com",
+    "ResultType": "50126",
+    "AppDisplayName": "Office 365 Exchange Online",
+    "UserAgent": "BAV2ROPC"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:13:00Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "it_admin@syarikat.com",
+    "ResultType": "50126",
+    "AppDisplayName": "Office 365 Exchange Online",
+    "UserAgent": "BAV2ROPC"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:15:20Z",
+    "IPAddress": "185.220.101.5",
+    "UserPrincipalName": "cfo_exec@syarikat.com",
+    "ResultType": "0",
+    "AppDisplayName": "Azure Portal",
+    "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Comment": "ALERT: Successful authentication following spray attempts"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:16:01Z",
+    "IPAddress": "45.154.255.88",
+    "TargetUserName": "dev_ali",
+    "EventID": "4625",
+    "Status": "0xc000006a",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:16:45Z",
+    "IPAddress": "45.154.255.88",
+    "TargetUserName": "dev_siti",
+    "EventID": "4625",
+    "Status": "0xc000006a",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:17:30Z",
+    "IPAddress": "45.154.255.88",
+    "TargetUserName": "dev_tan",
+    "EventID": "4625",
+    "Status": "0xc000006a",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:18:15Z",
+    "IPAddress": "45.154.255.88",
+    "TargetUserName": "dev_muthu",
+    "EventID": "4625",
+    "Status": "0xc000006a",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:19:00Z",
+    "IPAddress": "45.154.255.88",
+    "TargetUserName": "dev_chong",
+    "EventID": "4625",
+    "Status": "0xc000006a",
+    "FailureReason": "Bad Password"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:20:00Z",
+    "IPAddress": "192.168.1.50",
+    "TargetUserName": "audit_scan",
+    "EventID": "4625",
+    "Comment": "Internal vulnerability scanner test"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:22:00Z",
+    "IPAddress": "110.159.230.12",
+    "UserPrincipalName": "azman@syarikat.com",
+    "ResultType": "50126",
+    "Comment": "User typed wrong password once"
+  },
+  {
+    "TimeGenerated": "2026-11-09T00:22:30Z",
+    "IPAddress": "110.159.230.12",
+    "UserPrincipalName": "azman@syarikat.com",
+    "ResultType": "0",
+    "Comment": "User logged in on second attempt (Normal legitimate user)"
+  }
+]
