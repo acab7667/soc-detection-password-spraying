@@ -1,0 +1,56 @@
+// ==============================================================================
+// Title: Microsoft Defender XDR - Password Spraying Advanced Hunting Query
+// Table: IdentityLogonEvents
+// MITRE ATT&CK: T1110.003 (Brute Force: Password Spraying)
+// Author: acab7667
+// Environment: Microsoft Defender XDR Portal (security.microsoft.com) -> Advanced Hunting
+// Description: Mengesan percubaan semburan kata laluan (password spraying) merentasi 
+//              Active Directory dan Cloud Identities menggunakan jadual IdentityLogonEvents.
+//              Menandakan status CRITICAL sekiranya ada akaun yang berjaya ditembusi.
+// ==============================================================================
+
+let timeframe = 15m;
+let failed_account_threshold = 5; // Bilangan akaun unik gagal minimum untuk mencetuskan amaran
+
+IdentityLogonEvents
+| where Timestamp >= ago(timeframe)
+| where ActionType == "LogonFailed"
+| where FailureReason in ("InvalidCredential", "WrongPassword", "UserNotFound")
+| where isnotempty(IPAddress) and IPAddress !in ("127.0.0.1", "::1", "-")
+| summarize 
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    TargetedAccountsCount = dcount(AccountUpn),
+    TargetedAccounts = make_set(AccountUpn, 20),
+    Protocols = make_set(Protocol, 5),
+    Application = make_set(Application, 5),
+    TotalFailures = count()
+    by IPAddress, ISP, Location
+| where TargetedAccountsCount >= failed_account_threshold
+// Korelasi: Semak sama ada IP sumber yang sama berjaya log masuk ke mana-mana akaun dalam tempoh masa yang sama
+| join kind=leftouter (
+    IdentityLogonEvents
+    | where Timestamp >= ago(timeframe)
+    | where ActionType == "LogonSuccess"
+    | summarize 
+        CompromisedAccounts = make_set(AccountUpn, 10),
+        SuccessProtocols = make_set(Protocol, 5),
+        SuccessCount = count()
+        by IPAddress
+) on IPAddress
+| extend IsBreached = isnotempty(CompromisedAccounts)
+| extend ThreatSeverity = iff(IsBreached, "🚨 CRITICAL (Compromised)", "⚠️ HIGH (Spray Suspected)")
+| project 
+    ThreatSeverity,
+    FirstSeen,
+    LastSeen,
+    SourceIP = IPAddress,
+    Location,
+    ISP,
+    TargetedAccountsCount,
+    TargetedAccounts,
+    CompromisedAccounts,
+    TotalFailures,
+    Protocols,
+    Application
+| order by IsBreached desc, TargetedAccountsCount desc
